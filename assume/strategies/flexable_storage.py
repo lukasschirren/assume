@@ -195,26 +195,45 @@ class StorageEnergyHeuristicFlexableStrategy(MinMaxChargeStrategy):
             marketconfig (MarketConfig): The market configuration.
             orderbook (Orderbook): The orderbook.
         """
-        product_type = marketconfig.product_type
+        calculate_storage_reward(unit, marketconfig, orderbook)
 
-        for order in orderbook:
-            start = order["start_time"]
-            # end includes the end of the last product, to get the last products' start time we deduct the frequency once
-            end_excl = order["end_time"] - unit.index.freq
 
-            # Extract outputs and costs in one step
-            outputs = unit.outputs[product_type].loc[start:end_excl]
-            costs = np.where(
-                outputs != 0,
-                np.abs(outputs)
-                * np.array([unit.calculate_marginal_cost(start, x) for x in outputs]),
-                0,
-            )
+def calculate_storage_reward(
+    unit: SupportsMinMaxCharge,
+    marketconfig: MarketConfig,
+    orderbook: Orderbook,
+):
+    """
+    Calculates the costs and the profit of a storage unit for the products of the orderbook.
 
-            unit.outputs["profit"].loc[start:end_excl] = (
-                unit.outputs[f"{product_type}_cashflow"].loc[start:end_excl] - costs
-            )
-            unit.outputs["total_costs"].loc[start:end_excl] = costs
+    The costs are the marginal cost of the unit for the energy charged or discharged, and the
+    profit is the cashflow minus the costs.
+
+    Args:
+        unit (SupportsMinMaxCharge): The unit to calculate the reward for.
+        marketconfig (MarketConfig): The market configuration.
+        orderbook (Orderbook): The orderbook.
+    """
+    product_type = marketconfig.product_type
+
+    for order in orderbook:
+        start = order["start_time"]
+        # end includes the end of the last product, to get the last products' start time we deduct the frequency once
+        end_excl = order["end_time"] - unit.index.freq
+
+        # Extract outputs and costs in one step
+        outputs = unit.outputs[product_type].loc[start:end_excl]
+        costs = np.where(
+            outputs != 0,
+            np.abs(outputs)
+            * np.array([unit.calculate_marginal_cost(start, x) for x in outputs]),
+            0,
+        )
+
+        unit.outputs["profit"].loc[start:end_excl] = (
+            unit.outputs[f"{product_type}_cashflow"].loc[start:end_excl] - costs
+        )
+        unit.outputs["total_costs"].loc[start:end_excl] = costs
 
 
 class StorageCapacityHeuristicBalancingPosStrategy(MinMaxChargeStrategy):

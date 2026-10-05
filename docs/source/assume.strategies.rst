@@ -104,6 +104,14 @@ assume.strategies.portfolio\_strategies module
    :undoc-members:
    :show-inheritance:
 
+assume.strategies.storage\_strategies module
+--------------------------------------------
+
+.. automodule:: assume.strategies.storage_strategies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 assume.strategies.support\_strategies module
 --------------------------------------------
 

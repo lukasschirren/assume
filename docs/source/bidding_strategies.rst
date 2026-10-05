@@ -190,6 +190,10 @@ industry_capacity_heuristic_balancing_neg    CRM_neg             A negative capa
 industry_capacity_heuristic_balancing_pos    CRM_pos             A positive capacity strategy of a Industry DSM unit. The bid volume is the optimal power requirement of the optimization.
 powerplant_energy_optimization_dmas          EOM                 Power plant strategy using forecast optimization and avoided cost calculation used for smart bids coming from the DMAS methodology
 storage_energy_optimization_dmas             EOM                 Storage strategy using forecasts and avoided cost calculation used for smart bids coming from the DMAS methodology
+storage_energy_optimization_schedule         EOM                 Storage strategy that plans its charging and discharging over the products of an auction with a linear programme on the
+                                                                 price forecast (price taker, perfect foresight over the horizon, starting from the current state of charge and ending at
+                                                                 the initial one) and bids the plan: charging at the maximum price of the market, discharging at the break-even price of
+                                                                 the stored energy. Works for any product duration.
 ===========================================  ==================  ============
 
 Optimization method API references:
@@ -198,6 +202,7 @@ Optimization method API references:
 - :py:meth:`assume.strategies.naive_strategies.DsmCapacityHeuristicBalancingStrategy`
 - :py:meth:`assume.strategies.dmas_powerplant.EnergyOptimizationDmasStrategy`
 - :py:meth:`assume.strategies.dmas_storage.StorageEnergyOptimizationDmasStrategy`
+- :py:meth:`assume.strategies.storage_strategies.StorageEnergyOptimizationScheduleStrategy`
 
 Learning
 --------
