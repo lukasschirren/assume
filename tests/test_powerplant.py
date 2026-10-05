@@ -473,6 +473,105 @@ def test_powerplant_execute_dispatch():
     )
 
 
+def make_power_plant_without_ramps(unit_class=PowerPlant) -> PowerPlant:
+    index = pd.date_range("2022-01-01", periods=8, freq="h")
+    forecaster = PowerplantForecaster(
+        index=index,
+        availability=[1, 1, 0.5, 0.5, 0.2, 0, 1, 1],
+        fuel_prices={"lignite": 10, "co2": 10},
+        market_prices={"EOM": 0},
+    )
+    return unit_class(
+        id="test_pp",
+        unit_operator="test_operator",
+        technology="coal",
+        bidding_strategies={"EOM": EnergyNaiveStrategy()},
+        index=forecaster.index,
+        max_power=700,
+        min_power=50,
+        efficiency=0.5,
+        fuel_type="lignite",
+        min_operating_time=3,
+        min_down_time=2,
+        forecaster=forecaster,
+    )
+
+
+def test_powerplant_execute_dispatch_without_ramps():
+    """
+    Without ramp limits every time step is limited on its own: to the available power and,
+    if the power plant runs, to its minimum power. Operating and down times do not apply.
+    """
+    power_plant = make_power_plant_without_ramps()
+    index = power_plant.index.get_date_list()
+    assert power_plant.ramp_up is None and power_plant.ramp_down is None
+
+    planned = [0, 800, 700, 200, 200, 100, 20, -10]
+    # the available power is 700, 700, 350, 350, 140, 0, 700, 700
+    expected = [0, 700, 350, 200, 140, 50, 50, -10]
+
+    power_plant.outputs["energy"].loc[index] = planned
+    dispatch = power_plant.execute_current_dispatch(start=index[0], end=index[-1])
+    assert dispatch.tolist() == expected
+    assert power_plant.outputs["energy"].loc[index[0] : index[-1]].tolist() == expected
+
+    # only the given time steps are executed
+    power_plant.outputs["energy"].loc[index] = planned
+    dispatch = power_plant.execute_current_dispatch(start=index[2], end=index[4])
+    assert dispatch.tolist() == expected[2:5]
+    assert (
+        power_plant.outputs["energy"].loc[index[0] : index[-1]].tolist()
+        == planned[:2] + expected[2:5] + planned[5:]
+    )
+
+
+def test_powerplant_execute_dispatch_without_ramps_equals_stepwise_execution():
+    """
+    The dispatch of all time steps at once equals the dispatch step by step, which a power
+    plant with its own ramping rule still uses.
+    """
+
+    class StepwisePowerPlant(PowerPlant):
+        def calculate_ramp(self, *args, **kwargs):
+            return super().calculate_ramp(*args, **kwargs)
+
+    planned = [0, 800, 700, 200, 200, 100, 20, -10]
+    dispatch = {}
+    for unit_class in (PowerPlant, StepwisePowerPlant):
+        power_plant = make_power_plant_without_ramps(unit_class)
+        index = power_plant.index.get_date_list()
+        power_plant.outputs["energy"].loc[index] = planned
+        dispatch[unit_class] = power_plant.execute_current_dispatch(
+            start=index[0], end=index[-1]
+        ).tolist()
+
+    assert dispatch[PowerPlant] == dispatch[StepwisePowerPlant]
+
+
+def test_powerplant_generation_cost(power_plant_1):
+    index = power_plant_1.index.get_date_list()
+    # the marginal cost is 40, 52, 64, 66
+    power_plant_1.outputs["energy"].loc[index] = [100, 0, -50, 200]
+    power_plant_1.calculate_generation_cost(index[0], index[-1], "energy")
+    assert power_plant_1.outputs["energy_generation_costs"].loc[
+        index[0] : index[-1]
+    ].tolist() == [4000, 0, 3200, 13200]
+
+    # only the given time steps are calculated
+    power_plant_1.outputs["energy"].loc[index] = [10, 10, 10, 10]
+    power_plant_1.calculate_generation_cost(index[1], index[2], "energy")
+    assert power_plant_1.outputs["energy_generation_costs"].loc[
+        index[0] : index[-1]
+    ].tolist() == [4000, 520, 640, 13200]
+
+    # a marginal cost of its own is used as before
+    power_plant_1.calculate_marginal_cost = lambda start, power: 10
+    power_plant_1.calculate_generation_cost(index[0], index[-1], "energy")
+    assert power_plant_1.outputs["energy_generation_costs"].loc[
+        index[0] : index[-1]
+    ].tolist() == [100, 100, 100, 100]
+
+
 def test_powerplant_min_feedback(power_plant_1, mock_market_config):
     """
     Test that powerplant works fine for multi market bidding.

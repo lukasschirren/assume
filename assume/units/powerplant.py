@@ -189,6 +189,21 @@ class PowerPlant(SupportsMinMax):
 
         max_power_values = self.forecaster.availability.loc[start:end] * self.max_power
 
+        if (
+            self.ramp_up is None
+            and self.ramp_down is None
+            and type(self).calculate_ramp is SupportsMinMax.calculate_ramp
+        ):
+            # Without ramp limits calculate_ramp returns the power it is given, so a time step
+            # does not depend on the one before and all of them are limited at once.
+            # fmin and fmax keep a value when it is compared with NaN, as min and max do.
+            energy = self.outputs["energy"].loc[start:end]
+            running = energy > 0
+            energy[running] = np.fmax(
+                np.fmin(energy[running], max_power_values[running]), self.min_power
+            )
+            return self.outputs["energy"].loc[start:end]
+
         for t, max_power in zip(self.index[start:end], max_power_values):
             current_power = self.outputs["energy"].at[t]
             previous_power = self.get_output_before(t)
@@ -203,6 +218,40 @@ class PowerPlant(SupportsMinMax):
             self.outputs["energy"].at[t] = current_power
 
         return self.outputs["energy"].loc[start:end]
+
+    def calculate_generation_cost(
+        self, start: datetime, end: datetime, product_type: str
+    ) -> None:
+        """
+        Calculates the generation cost for a specific product type within the given time range.
+
+        The marginal cost of a power plant is a series which does not depend on its power output,
+        so the cost of all time steps is calculated at once. If the marginal cost is calculated
+        in another way, each time step is calculated on its own as for any unit.
+
+        Args:
+            start (datetime.datetime): The start time for the calculation.
+            end (datetime.datetime): The end time for the calculation.
+            product_type (str): The type of product for which the generation cost is to be calculated.
+        """
+        marginal_cost_is_series = (
+            self.marginal_cost is not None
+            and len(self.marginal_cost) > 1
+            and self.marginal_cost.index is self.index
+            and getattr(self.calculate_marginal_cost, "__func__", None)
+            is PowerPlant.calculate_marginal_cost
+        )
+        if not marginal_cost_is_series:
+            return super().calculate_generation_cost(start, end, product_type)
+
+        if start not in self.index:
+            start = self.index[0]
+
+        product_data = self.outputs[product_type].loc[start:end]
+        marginal_costs = self.marginal_cost.loc[start:end]
+        self.outputs[f"{product_type}_generation_costs"].loc[start:end] = np.abs(
+            marginal_costs * product_data
+        )
 
     def calc_simple_marginal_cost(
         self,
