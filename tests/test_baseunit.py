@@ -187,6 +187,50 @@ def test_calculate_multi_bids(base_unit, mock_market_config):
     ).all()
 
 
+def test_orders_over_several_steps(base_unit, mock_market_config):
+    index = base_unit.index
+    orderbook = [
+        # one volume and price for two time steps
+        {
+            "start_time": index[0],
+            "end_time": index[2],
+            "only_hours": None,
+            "price": 10,
+            "volume": 10,
+            "accepted_price": 11,
+            "accepted_volume": 10,
+        },
+        # a volume and a price per time step
+        {
+            "start_time": index[1],
+            "end_time": index[3],
+            "only_hours": None,
+            "price": 10,
+            "volume": {index[1]: 5, index[2]: 7},
+            "accepted_price": {index[1]: 12, index[2]: 13},
+            "accepted_volume": {index[1]: 5, index[2]: 7},
+        },
+    ]
+    base_unit.set_dispatch_plan(mock_market_config, orderbook)
+    base_unit.calculate_cashflow_and_reward(mock_market_config, orderbook)
+
+    assert base_unit.outputs["energy"].data.tolist() == [10, 15, 7, 0]
+    # the price of the last order written to a time step is kept
+    assert base_unit.outputs["energy_accepted_price"].data.tolist() == [11, 12, 13, 0]
+    # the cashflow of an order is multiplied by the number of its time steps
+    assert base_unit.outputs["energy_cashflow"].data.tolist() == [
+        10 * 11 * 2,
+        10 * 11 * 2 + 5 * 12 * 2,
+        7 * 13 * 2,
+        0,
+    ]
+
+    # a price per time step has to match the time steps of the order
+    orderbook[1]["accepted_price"] = {index[1]: 12}
+    with pytest.raises(ValueError):
+        base_unit.set_dispatch_plan(mock_market_config, orderbook)
+
+
 def test_clear_empty_bids(base_unit, mock_market_config):
     # Test empty bids
     bids = []

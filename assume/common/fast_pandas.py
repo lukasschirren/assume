@@ -243,6 +243,30 @@ class FastIndex:
 
         return round(delta_seconds / self.freq_seconds)
 
+    @lru_cache(maxsize=1000)
+    def _get_idx_range(self, start: datetime, end: datetime) -> tuple[int, int, float]:
+        """
+        Locate the time steps of a product that starts at `start` and ends at `end`.
+
+        The datetime arithmetic is costly and the same products are looked up for every
+        order of every unit that shares this index, so the result is cached.
+
+        Parameters:
+            start (datetime.datetime): The start of the product.
+            end (datetime.datetime): The end of the product, which is not part of it.
+
+        Returns:
+            tuple[int, int, float]: The index of the first time step, the index after the last
+            time step (as slicing from `start` to `end - freq` resolves it) and the number of
+            time steps between `start` and `end`.
+        """
+        end_excl = end - self._freq
+        return (
+            self._get_idx_from_date(start),
+            self._get_idx_from_date(end_excl, round_up=False) + 1,
+            (end - start) / self._freq,
+        )
+
     @staticmethod
     def _convert_to_datetime(value: datetime | str) -> datetime:
         """Convert input to datetime if it's not already."""
@@ -450,7 +474,11 @@ class FastSeries:
             TypeError: If the index type is unsupported.
             ValueError: If dates are not aligned within tolerance.
         """
-        if isinstance(item, slice):
+        if isinstance(item, datetime):
+            # Handle datetime input first, as it is by far the most frequent
+            return self.data[self.index._get_idx_from_date(item)]
+
+        elif isinstance(item, slice):
             # Handle slicing with datetime start/stop
             start_idx = (
                 self.index._get_idx_from_date(item.start)
@@ -486,10 +514,6 @@ class FastSeries:
             date = pd.to_datetime(item).to_pydatetime()
             return self.data[self.index._get_idx_from_date(date)]
 
-        elif isinstance(item, datetime):
-            # Handle datetime input
-            return self.data[self.index._get_idx_from_date(item)]
-
         else:
             raise TypeError(
                 f"Unsupported index type: {type(item)}. Must be datetime, slice, list, "
@@ -513,7 +537,11 @@ class FastSeries:
             TypeError: If the index type is unsupported.
             ValueError: If lengths of indices and values do not match or dates are not aligned within tolerance.
         """
-        if isinstance(item, slice):
+        if isinstance(item, datetime):
+            # Handle a single datetime first, as it is by far the most frequent
+            self.data[self.index._get_idx_from_date(item)] = value
+
+        elif isinstance(item, slice):
             # Handle slicing
             start_idx = (
                 self.index._get_idx_from_date(item.start)
@@ -565,11 +593,9 @@ class FastSeries:
                         start = self.index._get_idx_from_date(i)
                         self.data[start] = value
 
-        elif isinstance(item, datetime | str):
-            # Handle single datetime or string
-            date = (
-                pd.to_datetime(item).to_pydatetime() if isinstance(item, str) else item
-            )
+        elif isinstance(item, str):
+            # Handle a single date given as string
+            date = pd.to_datetime(item).to_pydatetime()
             idx = self.index._get_idx_from_date(date)
             self.data[idx] = value
 

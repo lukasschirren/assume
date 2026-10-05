@@ -134,27 +134,34 @@ class BaseUnit:
         """
 
         product_type = marketconfig.product_type
+        price_name = f"{product_type}_accepted_price"
         for order in orderbook:
             start = order["start_time"]
             end = order["end_time"]
-            # end includes the end of the last product, to get the last products' start time we deduct the frequency once
-            end_excl = end - self.index.freq
+            # end includes the end of the last product, so the time steps of the order are those from
+            # start to end minus the frequency. Their positions in the output arrays are looked up
+            # once per product and the arrays are written to directly, as this is done for every
+            # order of every unit.
+            start_idx, stop_idx, _ = self.index._get_idx_range(start, end)
 
             # Determine the added volume
             if isinstance(order["accepted_volume"], dict):
                 added_volume = list(order["accepted_volume"].values())
             else:
                 added_volume = order["accepted_volume"]
-            self.outputs[product_type].loc[start:end_excl] += added_volume
+            self.outputs[product_type].data[start_idx:stop_idx] += added_volume
 
             # Get the accepted price and store it in the outputs
             if isinstance(order["accepted_price"], dict):
                 accepted_price = list(order["accepted_price"].values())
             else:
                 accepted_price = order["accepted_price"]
-            self.outputs[f"{product_type}_accepted_price"].loc[start:end_excl] = (
-                accepted_price
-            )
+            if np.isscalar(accepted_price):
+                self.outputs[price_name].data[start_idx:stop_idx] = accepted_price
+            else:
+                # the series checks that there is one price per time step
+                end_excl = end - self.index.freq
+                self.outputs[price_name].loc[start:end_excl] = accepted_price
 
     def calculate_cashflow_and_reward(
         self,
@@ -267,11 +274,17 @@ class BaseUnit:
             product_type: The product type.
             orderbook: The orderbook.
         """
+        cashflow_name = f"{product_type}_cashflow"
         for order in orderbook:
             start = order["start_time"]
             end = order["end_time"]
-            # end includes the end of the last product, to get the last products' start time we deduct the frequency once
-            end_excl = end - self.index.freq
+            # end includes the end of the last product, so the time steps of the order are those from
+            # start to end minus the frequency. Their positions in the output array and their number
+            # are looked up once per product and the array is written to directly, as this is done
+            # for every order of every unit.
+            start_idx, stop_idx, elapsed_intervals = self.index._get_idx_range(
+                start, end
+            )
 
             if isinstance(order["accepted_volume"], dict):
                 cashflow = np.array(
@@ -285,8 +298,7 @@ class BaseUnit:
                     order.get("accepted_price", 0) * order.get("accepted_volume", 0)
                 )
 
-            elapsed_intervals = (end - start) / self.index.freq
-            self.outputs[f"{product_type}_cashflow"].loc[start:end_excl] += (
+            self.outputs[cashflow_name].data[start_idx:stop_idx] += (
                 cashflow * elapsed_intervals
             )
 

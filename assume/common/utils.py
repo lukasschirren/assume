@@ -692,9 +692,36 @@ def convert_tensors(data):
 
             return structure
 
+        nested_types = (dict, list, pd.Series)
+
+        def contains_tensor(data) -> bool:
+            """
+            Checks for a torch.Tensor in the same nested structures that
+            collect_tensors_with_paths walks through, without copying them.
+            """
+            if isinstance(data, dict):
+                values = data.values()
+            elif isinstance(data, list):
+                values = data
+            elif isinstance(data, pd.Series):
+                values = data.array
+            else:
+                return isinstance(data, th.Tensor)
+
+            for value in values:
+                if isinstance(value, th.Tensor):
+                    return True
+                if isinstance(value, nested_types) and contains_tensor(value):
+                    return True
+            return False
+
         # Handle the case where data itself is a tensor
         if isinstance(data, th.Tensor):
             return data.cpu().tolist()
+
+        # Most data holds no tensor, for example the orders of a market without learning units
+        if not contains_tensor(data):
+            return data
 
         # 1. Collect tensors with their paths
         structure, tensor_info = collect_tensors_with_paths(data)
