@@ -86,6 +86,8 @@ powerplant_energy_naive_otc         OTC                      Similar to powerpla
 demand_energy_naive_otc             OTC                      Similar to demand_energy_naive but for OTC (bilateral) trades.
 powerplant_energy_naive_profile     EOM, CRM_pos, CRM_neg    Similar to powerplant_energy_naive but submitted as a 24-hour block (Day-Ahead). Bid price is set to the marginal cost at the
                                                              starting timepoint.
+powerplant_energy_naive_support     EOM                      Similar to powerplant_energy_naive, for a unit with a support contract (a premium per MWh or a contract for differences).
+                                                             Bid price is the lowest price at which generating still pays under the contract, see :doc:`support_policies`.
 powerplant_energy_naive_redispatch  redispatch               Submits unit info and currently dispatched power for upcoming hours to the redispatch market (includes marginal cost, ramping,
                                                              and dispatch information).
 demand_energy_naive_redispatch      redispatch               Submits unit info and currently dispatched power for upcoming hours to the redispatch market (includes marginal cost, ramping,
@@ -103,6 +105,7 @@ Naive method API references:
 - :py:meth:`assume.strategies.naive_strategies.EnergyNaiveStrategy`
 - :py:meth:`assume.strategies.extended.EnergyNaiveOtcStrategy`
 - :py:meth:`assume.strategies.naive_strategies.EnergyNaiveProfileStrategy`
+- :py:meth:`assume.strategies.support_strategies.EnergyNaiveSupportStrategy`
 - :py:meth:`assume.strategies.naive_strategies.EnergyNaiveRedispatchStrategy`
 - :py:meth:`assume.strategies.naive_strategies.DsmEnergyNaiveRedispatchStrategy`
 - :py:meth:`assume.strategies.naive_strategies.ExchangeEnergyNaiveStrategy`
@@ -208,6 +211,9 @@ powerplant_energy_learning_single_bid EOM                Reinforcement Learning 
                                                          effectively treating the full capacity as inflexible from a bidding perspective.
 renewable_energy_learning_single_bid  EOM                Reinforcement Learning Strategy for a renewable unit that enables the agent to learn
                                                          optimal bidding strategies on an Energy-Only Market.
+powerplant_energy_learning_support    EOM                The RL strategy powerplant_energy_learning for a power plant with a support contract (see :doc:`support_policies`):
+                                                         the payments of the contract are part of the income the reward is made of, and the cost the agent observes
+                                                         is the lowest price at which generating pays under the contract.
 ===================================== ================== =============================================================
 
 Learning method API references:
@@ -216,6 +222,8 @@ Learning method API references:
 - :py:meth:`assume.strategies.learning_strategies.EnergyLearningSingleBidStrategy`
 - :py:meth:`assume.strategies.learning_strategies.StorageEnergyLearningStrategy`
 - :py:meth:`assume.strategies.learning_strategies.RenewableEnergyLearningSingleBidStrategy`
+- :py:meth:`assume.strategies.learning_support_strategies.EnergyLearningSupportStrategy`
+- :py:meth:`assume.strategies.learning_support_strategies.PortfolioLearningSupportStrategy`
 
 Other
 -----

@@ -557,6 +557,32 @@ class EnergyLearningStrategy(TorchLearningStrategy, MinMaxStrategy):
 
         return individual_observations
 
+    def unit_income(
+        self, unit: SupportsMinMax, start: datetime, price: float, volume: float
+    ) -> float:
+        """
+        The income of the unit for ``volume`` MW sold at ``price`` in the time step starting at
+        ``start``, as a rate per hour: the market price times the volume. A strategy for a unit
+        with further payments per MWh, such as a support contract, adds them here.
+
+        Args
+        ----
+        unit : SupportsMinMax
+            The unit.
+        start : datetime.datetime
+            The start of the time step.
+        price : float
+            The market clearing price.
+        volume : float
+            The accepted volume.
+
+        Returns
+        -------
+        float
+            The income.
+        """
+        return price * volume
+
     def calculate_reward(
         self,
         unit,
@@ -616,7 +642,10 @@ class EnergyLearningStrategy(TorchLearningStrategy, MinMaxStrategy):
             offered_volume_total += order["volume"]
 
             # Calculate profit as income minus operational cost for this event.
-            order_income = market_clearing_price * accepted_volume * duration
+            order_income = (
+                self.unit_income(unit, start, market_clearing_price, accepted_volume)
+                * duration
+            )
             order_cost = marginal_cost * accepted_volume * duration
 
             # Accumulate income and operational cost for all orders.
@@ -652,7 +681,7 @@ class EnergyLearningStrategy(TorchLearningStrategy, MinMaxStrategy):
 
         # Opportunity cost: The income lost due to not operating at full capacity.
         opportunity_cost = (
-            (market_clearing_price - marginal_cost)
+            (self.unit_income(unit, start, market_clearing_price, 1.0) - marginal_cost)
             * (unit.max_power - accepted_volume_total)
             * duration
         )

@@ -64,6 +64,14 @@ assume.strategies.learning\_strategies module
    :undoc-members:
    :show-inheritance:
 
+assume.strategies.learning\_support\_strategies module
+------------------------------------------------------
+
+.. automodule:: assume.strategies.learning_support_strategies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 assume.strategies.naive\_strategies module
 ------------------------------------------
 
@@ -84,6 +92,14 @@ assume.strategies.portfolio\_strategies module
 ----------------------------------------------
 
 .. automodule:: assume.strategies.portfolio_strategies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+assume.strategies.support\_strategies module
+--------------------------------------------
+
+.. automodule:: assume.strategies.support_strategies
    :members:
    :undoc-members:
    :show-inheritance:

@@ -12,6 +12,7 @@ from assume.common.base import MinMaxStrategy, SupportsMinMax
 from assume.common.exceptions import ValidationError
 from assume.common.fast_pandas import FastSeries
 from assume.common.forecaster import PowerplantForecaster
+from assume.common.market_objects import Orderbook
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,12 @@ class PowerPlant(SupportsMinMax):
         max_heat_extraction (float, optional): The maximum amount of heat that the power plant can extract for external use, in some suitable unit. Defaults to 0.
         location (Tuple[float, float], optional): The geographical coordinates (latitude and longitude) of the power plant's location. Defaults to (0.0, 0.0).
         node (str, optional): The identifier of the electrical bus or network node to which the power plant is connected. Defaults to "node0".
+        support_scheme (str, optional): The support contract of the power plant, read by support-aware bidding strategies: "premium" (a fixed payment per MWh generated) or "cfd" (a contract for differences). Defaults to "" (no contract).
+        support_value (float, optional): The premium or the strike price of the support contract, per MWh. Defaults to 0.
+        support_neg_price_rule (str, optional): When a "cfd" stops paying at negative prices: "any_hour" (in every negative period) or "six_hour" (only in a negative spell of six hours or more). Defaults to "".
+        support_reference (str, optional): The price series (a column of the fuel prices) a "cfd" is settled against. Defaults to "", the market price the power plant itself earns.
+        levy_rate (float, optional): The share of the receipts above ``levy_benchmark`` that a levy on generation revenue takes, such as the GB electricity generator levy. Defaults to 0 (no levy).
+        levy_benchmark (float, optional): The price per MWh above which the levy is taken. Defaults to 0.
         **kwargs (dict, optional): Additional keyword arguments to be passed to the base class. Defaults to {}.
     """
 
@@ -74,6 +81,12 @@ class PowerPlant(SupportsMinMax):
         max_heat_extraction: float = 0,
         location: tuple[float, float] = (0.0, 0.0),
         node: str = "node0",
+        support_scheme: str = "",
+        support_value: float = 0.0,
+        support_neg_price_rule: str = "",
+        support_reference: str = "",
+        levy_rate: float = 0.0,
+        levy_benchmark: float = 0.0,
         **kwargs,
     ):
         super().__init__(
@@ -86,6 +99,30 @@ class PowerPlant(SupportsMinMax):
             location=location,
             **kwargs,
         )
+
+        # the scenario loaders fill empty cells with 0, which is "no contract" here
+        self.support_scheme = str(support_scheme).lower() if support_scheme else ""
+        self.support_value = float(support_value or 0.0)
+        self.support_neg_price_rule = (
+            str(support_neg_price_rule) if support_neg_price_rule else ""
+        )
+        self.support_reference = str(support_reference) if support_reference else ""
+        # a levy on the receipts above a benchmark price, such as the GB electricity generator
+        # levy: the share taken, and the price per MWh above which it is taken
+        self.levy_rate = float(levy_rate or 0.0)
+        self.levy_benchmark = float(levy_benchmark or 0.0)
+        if not 0.0 <= self.levy_rate < 1.0:
+            raise ValidationError(
+                message=f"{levy_rate=} must be in [0, 1) for unit {self.id}",
+                id=self.id,
+                field="levy_rate",
+            )
+        if self.support_scheme not in ("", "premium", "cfd"):
+            raise ValidationError(
+                message=f"{support_scheme=} must be 'premium', 'cfd' or empty for unit {self.id}",
+                id=self.id,
+                field="support_scheme",
+            )
 
         if not isinstance(forecaster, PowerplantForecaster):
             raise ValueError(
@@ -333,6 +370,107 @@ class PowerPlant(SupportsMinMax):
         )
 
         return marginal_cost
+
+    def support_payment(self, start: datetime, price: float, volume: float) -> float:
+        """
+        Returns what the support contract of the plant pays for ``volume`` MW generated in the
+        time step starting at ``start`` when the market price is ``price``, as a rate per hour
+        like the cashflow. Nothing without a contract.
+
+        - "premium": the premium per MWh, whatever the price.
+        - "cfd" settled against the price the plant itself earns: the strike price less the
+          market price, so that the plant earns the strike price in all. Under the "any_hour"
+          rule nothing in a time step with a negative price; any other rule is taken as paying
+          in every time step.
+        - "cfd" settled against a reference price series (``support_reference``): the strike
+          price less the reference price, nothing where the reference price is missing.
+
+        Args:
+            start (datetime.datetime): The start of the time step.
+            price (float): The market price the plant earns in the time step.
+            volume (float): The volume generated, in MW.
+
+        Returns:
+            float: The payment of the contract.
+        """
+        if not self.support_scheme or volume == 0:
+            return 0.0
+        if self.support_scheme == "premium":
+            return self.support_value * volume
+        if self.support_reference:
+            if self.support_reference not in self.forecaster.fuel_prices:
+                raise ValueError(
+                    f"unit {self.id}: no price series '{self.support_reference}' for its support contract"
+                )
+            reference = self.forecaster.get_price(self.support_reference).at[start]
+            if np.isnan(reference):
+                return 0.0
+            return (self.support_value - reference) * volume
+        if self.support_neg_price_rule == "any_hour" and price < 0:
+            return 0.0
+        return (self.support_value - price) * volume
+
+    def levy_payment(self, start: datetime, price: float, volume: float) -> float:
+        """
+        Returns what a levy on generation revenue takes from ``volume`` MW sold at ``price`` in
+        the time step starting at ``start``, as a negative rate per hour: ``levy_rate`` times
+        the receipts above ``levy_benchmark`` per MWh. Nothing below the benchmark, nothing
+        without a levy, and nothing for a purchase (a negative volume).
+
+        Such a levy is assessed on the realised average price of a company over a year in
+        practice; taking it time step by time step is the marginal view of a plant that sells at
+        the market price, and overstates what a company whose receipts stay below the benchmark
+        on average would pay.
+        """
+        if self.levy_rate <= 0.0 or volume <= 0.0:
+            return 0.0
+        return -self.levy_rate * max(price - self.levy_benchmark, 0.0) * volume
+
+    def calculate_cashflow(self, product_type: str, orderbook: Orderbook):
+        """
+        Calculates the cashflow for the given product type, and for energy the payments of the
+        support contract of the plant (``outputs["support_cashflow"]``) and of a levy on its
+        revenue (``outputs["levy_cashflow"]``, negative), which are not part of the market
+        cashflow.
+
+        Args:
+            product_type: The product type.
+            orderbook: The orderbook.
+        """
+        super().calculate_cashflow(product_type, orderbook)
+        if product_type != "energy":
+            return
+        payments = []
+        if self.support_scheme:
+            payments.append(("support_cashflow", self.support_payment))
+        if self.levy_rate > 0.0:
+            payments.append(("levy_cashflow", self.levy_payment))
+        if not payments:
+            return
+        for order in orderbook:
+            start, end = order["start_time"], order["end_time"]
+            start_idx, stop_idx, elapsed_intervals = self.index._get_idx_range(
+                start, end
+            )
+            volume = order.get("accepted_volume", 0)
+            price = order.get("accepted_price", 0)
+            for name, payment_of in payments:
+                if isinstance(volume, dict):
+                    payment = np.array(
+                        [
+                            payment_of(
+                                t,
+                                price[t] if isinstance(price, dict) else price,
+                                volume[t],
+                            )
+                            for t in volume
+                        ]
+                    )
+                else:
+                    payment = payment_of(start, price, volume)
+                self.outputs[name].data[start_idx:stop_idx] += (
+                    payment * elapsed_intervals
+                )
 
     def calculate_min_max_power(
         self, start: datetime, end: datetime, product_type="energy"

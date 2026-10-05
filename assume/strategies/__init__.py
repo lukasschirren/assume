@@ -28,6 +28,7 @@ from assume.strategies.naive_strategies import (
     EnergyHeuristicElasticStrategy,
     DsmCapacityHeuristicBalancingStrategy,
 )
+from assume.strategies.support_strategies import EnergyNaiveSupportStrategy
 from assume.strategies.interactive_strategies import EnergyInteractiveStrategy
 from assume.strategies.dmas_powerplant import EnergyOptimizationDmasStrategy
 from assume.strategies.dmas_storage import StorageEnergyOptimizationDmasStrategy
@@ -92,6 +93,7 @@ bidding_strategies: dict[str, type[BaseStrategy | UnitOperatorStrategy]] = {
     "units_operator_energy_heuristic_cournot": UnitsOperatorEnergyHeuristicCournotStrategy,
     "units_operator_direct": UnitsOperatorDirectStrategy,
     "powerplant_energy_naive_profile": EnergyNaiveProfileStrategy,
+    "powerplant_energy_naive_support": EnergyNaiveSupportStrategy,
     "powerplant_energy_interactive": EnergyInteractiveStrategy,
 }
 
@@ -124,5 +126,15 @@ try:
     )
 
     bidding_strategies["portfolio_learning"] = PortfolioLearningStrategy
+
+    from assume.strategies.learning_support_strategies import (
+        EnergyLearningSupportStrategy,
+        PortfolioLearningSupportStrategy,
+    )
+
+    bidding_strategies["powerplant_energy_learning_support"] = (
+        EnergyLearningSupportStrategy
+    )
+    bidding_strategies["portfolio_learning_support"] = PortfolioLearningSupportStrategy
 except ImportError:
     pass

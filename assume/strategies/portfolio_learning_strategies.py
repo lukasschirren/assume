@@ -201,7 +201,7 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
                             "start_time": prod_start,
                             "end_time": prod_end,
                             "only_hours": None,
-                            "price": marginal_cost,
+                            "price": self.unit_floor(unit, prod_start, marginal_cost),
                             "volume": inflex_gen,
                             "unit_id": unit_id,
                             "bid_id": f"{units_operator.id}_{unit_id}_inflex",
@@ -215,8 +215,9 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
                         "start_time": prod_start,
                         "end_time": prod_end,
                         "only_hours": None,
-                        "price": marginal_cost
-                        * markups[self.nbins * i + j],  # price for quantile j at time i
+                        "price": self.unit_bid(
+                            unit, prod_start, marginal_cost, markups[self.nbins * i + j]
+                        ),  # price for quantile j at time i
                         "volume": flex_gen,
                         "unit_id": unit_id,
                         "bid_id": f"{units_operator.id}_{unit_id}_flex",
@@ -230,6 +231,30 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
             )
 
         return bids
+
+    def unit_floor(self, unit, start: datetime, marginal_cost: float) -> float:
+        """
+        The lowest price at which generating pays for the unit in the time step starting at
+        ``start``: its marginal cost. A strategy for units with further payments per MWh, such
+        as a support contract, lowers it here.
+        """
+        return marginal_cost
+
+    def unit_bid(
+        self, unit, start: datetime, marginal_cost: float, markup: float
+    ) -> float:
+        """
+        The bid price of the unit's flexible capacity for a mark-up factor on its marginal cost.
+        """
+        return marginal_cost * markup
+
+    def unit_income(self, unit, start: datetime, price: float, volume: float) -> float:
+        """
+        The income of the unit for ``volume`` MW sold at ``price`` in the time step starting at
+        ``start``: the market price times the volume. A strategy for units with further
+        payments per MWh adds them here.
+        """
+        return price * volume
 
     def get_actions(self, next_observation: th.Tensor) -> tuple[th.Tensor, th.Tensor]:
         """
@@ -509,12 +534,22 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
                 )
 
                 # Compute profits
-                unit_profit = (clearing_price - marginal_cost) * accepted_volume
+                unit_profit = (
+                    self.unit_income(unit, start, clearing_price, accepted_volume)
+                    - marginal_cost * accepted_volume
+                )
                 tot_profits += unit_profit
 
                 # Compute competitive profits
-                comp_volume = 0 if comp_price < marginal_cost else order["volume"]
-                unit_comp_profit = (comp_price - marginal_cost) * comp_volume
+                comp_volume = (
+                    0
+                    if comp_price < self.unit_floor(unit, start, marginal_cost)
+                    else order["volume"]
+                )
+                unit_comp_profit = (
+                    self.unit_income(unit, start, comp_price, comp_volume)
+                    - marginal_cost * comp_volume
+                )
                 comp_profits += unit_comp_profit
 
                 scaled_accepted_vol += accepted_volume * scaling_factor
