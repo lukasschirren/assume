@@ -227,3 +227,47 @@ def test_portfolio_calculate_reward(
     assert len(lr.all_rewards) == 1
     assert "test_portfolio_operator" in lr.all_rewards[start]
     assert "test_portfolio_operator" in lr.all_profits[start]
+
+
+@pytest.mark.require_learning
+def test_portfolio_observation_with_plants_dearer_than_any_price(
+    portfolio_units_operator, portfolio_strategy
+):
+    """A plant can cost more than any forecasted price, and the residual load can be zero or
+    negative: the observation stays finite and the bids are formed (the cost bins are scaled by
+    the dearest plant, the inframarginal share by the installed capacity)."""
+    strategy, _ = portfolio_strategy
+    # the units cost about 30 to 90; a forecast below all of them, a residual load through zero
+    portfolio_units_operator.forecaster = UnitsOperatorForecaster(
+        portfolio_units_operator.forecaster.index,
+        market_prices={MARKET_ID: np.linspace(5, 25, 48)},
+        residual_load={MARKET_ID: np.linspace(-200, 200, 48)},
+    )
+    product_start = pd.date_range(start, periods=1, freq="h")[0]
+    obs = strategy.create_observation(
+        portfolio_units_operator,
+        MARKET_ID,
+        product_start,
+        product_start + pd.Timedelta(hours=1),
+    )
+    assert bool(np.isfinite(obs.cpu().numpy()).all())
+    assert strategy.max_cost > strategy.max_price
+    bids = strategy.calculate_bids(
+        portfolio_units_operator,
+        MarketConfig(
+            market_id=MARKET_ID,
+            opening_hours=rr.rrule(rr.HOURLY, dtstart=start, until=end),
+            opening_duration=rd(hours=1),
+            market_mechanism="pay_as_clear",
+            market_products=[MarketProduct(rd(hours=1), 1, rd(hours=1))],
+            product_type="energy_eom",
+        ),
+        [(product_start, product_start + pd.Timedelta(hours=1), None)],
+    )
+    assert len(bids) == len(portfolio_units_operator.units)
+    for bid in bids:
+        unit = portfolio_units_operator.units[bid["unit_id"]]
+        assert (
+            bid["price"]
+            >= unit.calculate_marginal_cost(product_start, unit.max_power) - 1e-9
+        )

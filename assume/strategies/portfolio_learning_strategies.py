@@ -165,7 +165,7 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
             in_min=0,
             in_max=1,
             out_min=0,
-            out_max=self.max_price,
+            out_max=self.max_cost,
         )
 
         markups = min_max_scale(
@@ -278,12 +278,14 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
         gen_obs = 0
         price_forecast = units_operator.forecaster.price[market_id]
         residual_load = units_operator.forecaster.residual_load[market_id]
+        max_cost = -np.inf
 
         for u_id, unit in units_operator.units.items():
             unit_gen = FastSeries(index=unit.index, value=0)
 
             for start in price_forecast.index:
                 marginal_cost = unit.calculate_marginal_cost(start, unit.max_power)
+                max_cost = max(max_cost, marginal_cost)
                 unit_state = price_forecast[start] > marginal_cost
                 unit_gen[start] = unit_state * unit.max_power
 
@@ -291,6 +293,8 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
 
         self.min_price = min(price_forecast)
         self.max_price = max(price_forecast)
+        # the cost bins are scaled by this bound: a plant can cost more than any forecasted price
+        self.max_cost = max(self.max_price, max_cost)
         self.min_res_load = min(residual_load)
         self.max_res_load = max(residual_load)
 
@@ -304,7 +308,9 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
         )
 
         # Inframarginal generation forecast
-        self.scaled_gen_obs = gen_obs / residual_load
+        # the share of the portfolio that is cheaper than the forecasted price; the residual
+        # load is no scale for it, as it can be zero or negative
+        self.scaled_gen_obs = gen_obs / self.installed_capacity
         self.is_prepared = True
 
     def create_observation(self, units_operator, market_id, start, end):
@@ -432,7 +438,7 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
         cost_bins = np.quantile(flex_cost, q=bins)
 
         # Creates bins of marginal costs
-        scaled_costs = min_max_scale(cost_bins, in_min=0, in_max=self.max_price)
+        scaled_costs = min_max_scale(cost_bins, in_min=0, in_max=self.max_cost)
 
         # Calculates the total capacity of units in those bins
         index = np.searchsorted(cost_bins, flex_cost, side="right")
