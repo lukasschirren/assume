@@ -88,6 +88,15 @@ powerplant_energy_naive_profile     EOM, CRM_pos, CRM_neg    Similar to powerpla
                                                              starting timepoint.
 powerplant_energy_naive_support     EOM                      Similar to powerplant_energy_naive, for a unit with a support contract (a premium per MWh or a contract for differences).
                                                              Bid price is the lowest price at which generating still pays under the contract, see :doc:`support_policies`.
+powerplant_energy_naive_forecast    EOM                      Similar to powerplant_energy_naive_support, for a market that closes before the outturn is known: the volume follows
+                                                             the availability as forecast ahead of time (``availability_forecast_df.csv``), see :doc:`unit_forecasts`.
+demand_energy_naive_forecast        EOM                      Similar to demand_energy_naive, with the demand as forecast ahead of time (``demand_forecast_df.csv``).
+powerplant_energy_naive_rebalance   EOM                      For a market that follows another one: offers what the unit can deliver beyond its position at its marginal cost (less
+                                                             what a support contract pays), buys back what it has sold down to its minimum power at that price, and buys back what
+                                                             it cannot deliver at the maximum price. With a two-sided clearing such as complex_clearing the market then prices
+                                                             the deviations.
+demand_energy_naive_rebalance       EOM                      For a market that follows another one: buys what the demand unit needs beyond what it has bought at the maximum price
+                                                             and sells what it has bought but does not need at the minimum price.
 powerplant_energy_naive_redispatch  redispatch               Submits unit info and currently dispatched power for upcoming hours to the redispatch market (includes marginal cost, ramping,
                                                              and dispatch information).
 demand_energy_naive_redispatch      redispatch               Submits unit info and currently dispatched power for upcoming hours to the redispatch market (includes marginal cost, ramping,
@@ -106,6 +115,9 @@ Naive method API references:
 - :py:meth:`assume.strategies.extended.EnergyNaiveOtcStrategy`
 - :py:meth:`assume.strategies.naive_strategies.EnergyNaiveProfileStrategy`
 - :py:meth:`assume.strategies.support_strategies.EnergyNaiveSupportStrategy`
+- :py:meth:`assume.strategies.forecast_strategies.EnergyNaiveForecastStrategy`
+- :py:meth:`assume.strategies.forecast_strategies.EnergyNaiveRebalanceStrategy`
+- :py:meth:`assume.strategies.forecast_strategies.DemandEnergyNaiveRebalanceStrategy`
 - :py:meth:`assume.strategies.naive_strategies.EnergyNaiveRedispatchStrategy`
 - :py:meth:`assume.strategies.naive_strategies.DsmEnergyNaiveRedispatchStrategy`
 - :py:meth:`assume.strategies.naive_strategies.ExchangeEnergyNaiveStrategy`

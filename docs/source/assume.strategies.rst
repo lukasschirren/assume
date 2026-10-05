@@ -56,6 +56,14 @@ assume.strategies.flexable\_storage module
    :undoc-members:
    :show-inheritance:
 
+assume.strategies.forecast\_strategies module
+---------------------------------------------
+
+.. automodule:: assume.strategies.forecast_strategies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 assume.strategies.learning\_strategies module
 ---------------------------------------------
 

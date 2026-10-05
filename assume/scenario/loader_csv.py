@@ -688,6 +688,19 @@ def load_config_and_create_forecaster(
     if availability is None:
         availability = pd.DataFrame(index=index)
 
+    # optional forecasts of the availability and the demand as known ahead of time, for
+    # strategies that bid before the outturn is known; a unit without a column has none
+    availability_forecast = load_file(
+        path=path, config=config, file_name="availability_forecast_df", index=index
+    )
+    if availability_forecast is None:
+        availability_forecast = pd.DataFrame(index=index)
+    demand_forecast_df = load_file(
+        path=path, config=config, file_name="demand_forecast_df", index=index
+    )
+    if demand_forecast_df is None:
+        demand_forecast_df = pd.DataFrame(index=index)
+
     fuel_prices_df = load_file(
         path=path, config=config, file_name="fuel_prices_df", index=index
     )
@@ -710,6 +723,7 @@ def load_config_and_create_forecaster(
             unit_forecasts[id] = PowerplantForecaster(
                 index=shared_unit_index,
                 availability=availability.get(id, pd.Series(1.0, index, name=id)),
+                availability_forecast=availability_forecast.get(id),
                 fuel_prices=fuel_prices_df,
                 forecast_algorithms=get_unit_forecast_algorithms(
                     forecast_algorithms, plant
@@ -717,10 +731,14 @@ def load_config_and_create_forecaster(
             )
     if demand_units is not None:
         for id, demand in demand_units.iterrows():
+            demand_forecast = demand_forecast_df.get(id)
             unit_forecasts[id] = DemandForecaster(
                 index=shared_unit_index,
                 availability=availability.get(id, pd.Series(1.0, index, name=id)),
                 demand=-demand_df[id].abs(),
+                demand_forecast=None
+                if demand_forecast is None
+                else -demand_forecast.abs(),
                 forecast_algorithms=get_unit_forecast_algorithms(
                     forecast_algorithms, demand
                 ),

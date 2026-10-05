@@ -132,7 +132,11 @@ class Demand(SupportsMinMax):
         return self.outputs["energy"].loc[start:end]
 
     def calculate_min_max_power(
-        self, start: datetime, end: datetime, product_type="energy"
+        self,
+        start: datetime,
+        end: datetime,
+        product_type="energy",
+        use_forecast: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Calculates the minimum and maximum power output of the unit and returns the bid volume as both the minimum and maximum power output of the unit.
@@ -141,6 +145,9 @@ class Demand(SupportsMinMax):
             start (pandas.Timestamp): The start time of the dispatch.
             end (pandas.Timestamp): The end time of the dispatch (exclusive).
             product_type (str, optional): The product type. Defaults to "energy".
+            use_forecast (bool, optional): Whether to use the demand as forecast ahead of time
+                instead of the outturn, for a market that closes before the outturn is known.
+                Defaults to False.
 
         Returns:
             tuple[np.ndarray, np.ndarray]: The bid volume as both the minimum and maximum power output of the unit.
@@ -148,9 +155,11 @@ class Demand(SupportsMinMax):
 
         # end includes the end of the last product, to get the last products' start time we deduct the frequency once
         end_excl = end - self.index.freq
+        demand = (
+            self.forecaster.demand_forecast if use_forecast else self.forecaster.demand
+        )
         bid_volume = (
-            self.forecaster.demand.loc[start:end_excl]
-            - self.outputs[product_type].loc[start:end_excl]
+            demand.loc[start:end_excl] - self.outputs[product_type].loc[start:end_excl]
         )
 
         return bid_volume, bid_volume

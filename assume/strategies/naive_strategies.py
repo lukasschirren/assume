@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 
+import numpy as np
+
 from assume.common.base import MinMaxStrategy, SupportsMinMax
 from assume.common.market_objects import MarketConfig, Order, Orderbook, Product
 
@@ -40,8 +42,8 @@ class EnergyNaiveStrategy(MinMaxStrategy):
             start
         )  # power output of the unit before the start time of the first product
         op_time = unit.get_operation_time(start)
-        min_power_values, max_power_values = unit.calculate_min_max_power(
-            start, end_all
+        min_power_values, max_power_values = self.calculate_min_max_power(
+            unit, start, end_all
         )  # minimum and maximum power output of the unit between the start time of the first product and the end time of the last product
 
         bids = []
@@ -85,6 +87,23 @@ class EnergyNaiveStrategy(MinMaxStrategy):
             return bids
         else:
             return self.remove_empty_bids(bids)
+
+    def calculate_min_max_power(
+        self, unit: SupportsMinMax, start, end
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Returns the minimum and maximum power the unit can offer between start and end, as the
+        unit knows it. A strategy that bids before the outturn is known overrides this.
+
+        Args:
+            unit (SupportsMinMax): The unit to be dispatched.
+            start (datetime.datetime): The start time of the first product.
+            end (datetime.datetime): The end time of the last product.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: The minimum and maximum power per time step.
+        """
+        return unit.calculate_min_max_power(start, end)
 
 
 class EnergyNaiveProfileStrategy(MinMaxStrategy):

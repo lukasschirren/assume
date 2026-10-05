@@ -29,6 +29,11 @@ from assume.strategies.naive_strategies import (
     DsmCapacityHeuristicBalancingStrategy,
 )
 from assume.strategies.support_strategies import EnergyNaiveSupportStrategy
+from assume.strategies.forecast_strategies import (
+    DemandEnergyNaiveRebalanceStrategy,
+    EnergyNaiveForecastStrategy,
+    EnergyNaiveRebalanceStrategy,
+)
 from assume.strategies.interactive_strategies import EnergyInteractiveStrategy
 from assume.strategies.dmas_powerplant import EnergyOptimizationDmasStrategy
 from assume.strategies.dmas_storage import StorageEnergyOptimizationDmasStrategy
@@ -94,6 +99,10 @@ bidding_strategies: dict[str, type[BaseStrategy | UnitOperatorStrategy]] = {
     "units_operator_direct": UnitsOperatorDirectStrategy,
     "powerplant_energy_naive_profile": EnergyNaiveProfileStrategy,
     "powerplant_energy_naive_support": EnergyNaiveSupportStrategy,
+    "powerplant_energy_naive_forecast": EnergyNaiveForecastStrategy,
+    "demand_energy_naive_forecast": EnergyNaiveForecastStrategy,
+    "powerplant_energy_naive_rebalance": EnergyNaiveRebalanceStrategy,
+    "demand_energy_naive_rebalance": DemandEnergyNaiveRebalanceStrategy,
     "powerplant_energy_interactive": EnergyInteractiveStrategy,
 }
 

@@ -473,7 +473,11 @@ class PowerPlant(SupportsMinMax):
                 )
 
     def calculate_min_max_power(
-        self, start: datetime, end: datetime, product_type="energy"
+        self,
+        start: datetime,
+        end: datetime,
+        product_type="energy",
+        use_forecast: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Calculates the additional minimum and maximum power output.
@@ -486,6 +490,9 @@ class PowerPlant(SupportsMinMax):
             start (datetime): The start time of the dispatch.
             end (datetime): The end time of the dispatch (exclusive).
             product_type (str, optional): The product type. Defaults to "energy".
+            use_forecast (bool, optional): Whether to use the availability as forecast ahead of
+                time instead of the outturn, for a market that closes before the outturn is known.
+                Defaults to False.
 
         Returns:
             tuple[np.ndarray, np.ndarray]: The additional minimum and maximum power output of the unit.
@@ -502,7 +509,10 @@ class PowerPlant(SupportsMinMax):
         capacity_pos = self.outputs["capacity_pos"].loc[start:end_excl]
         capacity_neg = self.outputs["capacity_neg"].loc[start:end_excl]
 
-        availability = self.forecaster.availability.loc[start:end_excl]
+        if use_forecast:
+            availability = self.forecaster.availability_forecast.loc[start:end_excl]
+        else:
+            availability = self.forecaster.availability.loc[start:end_excl]
         available_power = availability * self.max_power
 
         # check if available power is larger than max_power and raise an error if so

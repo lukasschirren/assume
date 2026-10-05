@@ -163,7 +163,9 @@ class UnitForecaster:
 
     Attributes:
         index (ForecastIndex): The time index for all forecast series in this unit.
-        availability (ForecastSeries): Forecasted availability of the unit.
+        availability (ForecastSeries): Availability of the unit as it turns out, used at dispatch.
+        availability_forecast (ForecastSeries): Availability of the unit as forecast ahead of time, for
+            strategies that bid before the outturn is known. The outturn itself if no forecast is given.
         forecast_algorithms (dict[str, str]): Map of ``{prefix}_{metric}`` keys to algorithm IDs.
         price (dict[str, ForecastSeries]): Map of ``market_id`` to forecasted prices (initialized from ``market_prices``).
         residual_load (dict[str, ForecastSeries]): Map of ``market_id`` to forecasted residual load.
@@ -179,6 +181,7 @@ class UnitForecaster:
         availability: ForecastSeries = 1,
         forecast_algorithms: dict[str, str] = {},
         forecast_registries: dict[str, dict] = None,
+        availability_forecast: ForecastSeries | None = None,
     ):
         if not isinstance(index, FastIndex):
             index = FastIndex(start=index[0], end=index[-1], freq=pd.infer_freq(index))
@@ -189,6 +192,17 @@ class UnitForecaster:
             raise ValidationError(
                 message="Availability must be between 0 and 1", field="availability"
             )
+        if availability_forecast is None:
+            self.availability_forecast: FastSeries = self.availability
+        else:
+            self.availability_forecast = self._to_series(availability_forecast)
+            if any(self.availability_forecast < 0) or any(
+                self.availability_forecast > 1
+            ):
+                raise ValidationError(
+                    message="Availability forecast must be between 0 and 1",
+                    field="availability_forecast",
+                )
         self.forecast_algorithms = forecast_algorithms
         self._registries = forecast_registries
         if market_prices is None:
@@ -394,7 +408,9 @@ class DemandForecaster(UnitForecaster):
     plus a demand timeseries specific to demand units.
 
     Attributes:
-        demand (ForecastSeries): Forecasted demand (must be negative).
+        demand (ForecastSeries): Demand as it turns out (must be negative), used at dispatch.
+        demand_forecast (ForecastSeries): Demand as forecast ahead of time, for strategies that bid
+            before the outturn is known. The outturn itself if no forecast is given.
     """
 
     def __init__(
@@ -406,6 +422,8 @@ class DemandForecaster(UnitForecaster):
         availability: ForecastSeries = 1,
         forecast_algorithms: dict[str, str] = {},
         forecast_registries: dict[str, dict] = None,
+        availability_forecast: ForecastSeries | None = None,
+        demand_forecast: ForecastSeries | None = None,
     ):
         super().__init__(
             index=index,
@@ -414,10 +432,19 @@ class DemandForecaster(UnitForecaster):
             forecast_registries=forecast_registries,
             market_prices=market_prices,
             residual_load=residual_load,
+            availability_forecast=availability_forecast,
         )
         self.demand = self._to_series(demand)
         if any(self.demand > 0):
             raise ValidationError(message="demand must be negative", field="demand")
+        if demand_forecast is None:
+            self.demand_forecast = self.demand
+        else:
+            self.demand_forecast = self._to_series(demand_forecast)
+            if any(self.demand_forecast > 0):
+                raise ValidationError(
+                    message="demand forecast must be negative", field="demand_forecast"
+                )
 
 
 class PowerplantForecaster(UnitForecaster):
@@ -439,6 +466,7 @@ class PowerplantForecaster(UnitForecaster):
         availability: ForecastSeries = 1,
         forecast_algorithms: dict[str, str] = {},
         forecast_registries: dict[str, dict] = None,
+        availability_forecast: ForecastSeries | None = None,
     ):
         super().__init__(
             index=index,
@@ -447,6 +475,7 @@ class PowerplantForecaster(UnitForecaster):
             forecast_registries=forecast_registries,
             market_prices=market_prices,
             residual_load=residual_load,
+            availability_forecast=availability_forecast,
         )
         if fuel_prices is None:
             fuel_prices = {}

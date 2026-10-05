@@ -18,7 +18,15 @@ Forecaster Types
 
 Each unit type has its own forecaster class. All forecasters inherit from
 :class:`~assume.common.forecaster.UnitForecaster`, which provides the base lifecycle interface and
-common attributes (``price``, ``residual_load``, ``availability``).
+common attributes (``price``, ``residual_load``, ``availability``, ``availability_forecast``).
+
+``availability`` is the availability as it turns out, which the unit is dispatched with.
+``availability_forecast`` (and ``demand_forecast`` of a demand unit) is the availability as it was
+forecast ahead of time, for strategies that bid on a market which closes before the outturn is
+known, such as ``powerplant_energy_naive_forecast``; it is the outturn itself unless a forecast is
+given. The CSV loader reads the forecasts from the optional files ``availability_forecast_df.csv``
+and ``demand_forecast_df.csv``, which have the form of ``availability_df.csv`` and
+``demand_df.csv``; a unit without a column has no forecast error.
 
 ============================= ========================================= ===========================================
 Unit Type                     Forecaster Class                          Additional attributes
