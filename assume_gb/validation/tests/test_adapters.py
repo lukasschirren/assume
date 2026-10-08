@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The adapters read the folders of ``assume_gb`` into the data contract: on a small stand-in
 for a scenario folder and saved runs (two weeks of January 2023 and the week before), and, where

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Reference estimates from the literature, read from the package's own ``data/reference`` folder
 (see its README for provenance): the yardsticks the mechanism checks of criterion 5 are compared

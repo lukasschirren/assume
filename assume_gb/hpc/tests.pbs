@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 #
 # The framework's test suite (without the slow CLI tests) and ruff, on a compute node. Submit from
 # the repository root:  qsub assume_gb/hpc/tests.pbs ; the output is in assume_gb/results/logs/.

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The standard figures of one run of a GB scenario, written as PNG and PDF beside the numbers
 they quote (``numbers.json``, ``numbers.csv``), their captions (``captions.md``) and the headline

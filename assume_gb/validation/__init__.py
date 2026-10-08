@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Validation of simulated GB day-ahead prices against observed prices: a fixed scorecard of eight
 criteria and a standard set of figures. The choices follow the synthesis note "How should I

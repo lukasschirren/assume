@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The reference curves of Cacciarelli et al.: every market and technology is there, values are
 interpolated linearly and never extrapolated, and the hidden part of the solar band stays empty."""

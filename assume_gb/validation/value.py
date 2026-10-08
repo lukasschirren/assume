@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Criterion 7 of the scorecard: does the error matter for decisions? A more accurate price need
 not lead to better decisions [nitkaCombiningPredictiveDistributions2023], so a model is also scored

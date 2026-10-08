@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 #
 # One evaluation run per job: a study case that applies trained policies (no training), e.g. the
 # year with a run's last policies. As an array, sub-job N runs line N of CASES_FILE (default

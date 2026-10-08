@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Fixtures of the validation tests: two years of synthetic half-hourly data (2022 and 2023, local
 time). As in the GB runs, the calibration window (four weeks of training, 6 November to 3 December

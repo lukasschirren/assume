@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The scorecard: every criterion on the headline window, the benchmark comparisons there only,
 skills against the naive forecast, the seed spread of an ensemble, and the exports."""

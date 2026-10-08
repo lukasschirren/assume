@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 #
 # The exchanges' bid curves of some years, resampled (python -m assume_gb curves): one pass over the
 # Nord Pool archive and the EPEX zips. Submit from the repository root:

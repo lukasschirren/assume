@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Regression harness for changes to the framework's bookkeeping: run the example scenarios (and
 the first GB week) into sqlite databases, which keep full precision, under a tag, and compare two

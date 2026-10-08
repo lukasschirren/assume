@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The built GB scenario folders, simulated with the framework as it ships: the first week of
 each must clear at the merit order of its own offers. Skipped for a year that is not built.

@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 #
 # Writes the study cases of a training campaign into the scenario's config.yaml and lists them in
 # assume_gb/hpc/cases.txt, one per line, for train.pbs: one case per training window and seed

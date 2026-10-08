@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The one module that knows the folders of ``assume_gb``: it reads the scenario folders
 (``assume_gb/inputs/gb_<year>``) and the saved runs (``assume_gb/results``) into the data contract

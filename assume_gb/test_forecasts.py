@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The forecasts that define predicted penetration (``penetration_forecasts.csv``), written from a
 stand-in for the GB data repository: on the scenario folder's own index, with the transmission

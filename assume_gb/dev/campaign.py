@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Summary of a learning campaign: one row per training run (how its owners did against the
 competitive benchmark, how far its policies move the price in the training window and over the

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The results layout (``paths.results_dir``) and ``tidy``, which moves a results folder from the
 old flat layout into it: every kind of file to its place, nothing overwritten, every move logged,

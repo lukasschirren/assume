@@ -1,7 +1,7 @@
 <!--
 SPDX-FileCopyrightText: ASSUME Developers
 
-SPDX-License-Identifier: AGPL-3.0-or-later
+SPDX-License-Identifier: MIT
 -->
 
 # ASSUME for Great Britain: state of the work and how to continue (6 Oct 2026)

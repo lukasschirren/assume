@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Criterion 7: capture prices weigh every price series with the same generation, and the
 storage programme earns what can be worked out by hand, keeps clock-change days whole and never

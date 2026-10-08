@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The validation written out: for one ``ValidationData``, the scorecard of every window, the
 tables behind the figures, the core and supplementary figures and a note of what could not be

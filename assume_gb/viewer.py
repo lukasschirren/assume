@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """An interactive page for one run: pick any half-hour and see its order book as a merit order,
 the day around it and the year, beside the observed prices.

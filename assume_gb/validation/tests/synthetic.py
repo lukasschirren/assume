@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Synthetic data for the tests: half-hourly prices on a Europe/London index (so the clock changes
 are in it), made from synthetic wind, solar, demand, gas and carbon with the known coefficients

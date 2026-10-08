@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """One run of a GB scenario, read back for the figures: the framework's CSV output of the run
 (``--csv DIR`` writes it to ``DIR/<scenario>_<case>``) and the scenario folder it was run from.

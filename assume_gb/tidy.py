@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Moves a results folder from the old flat layout into the tidy one (``results/README.md``,
 ``paths.results_dir``), without overwriting anything:

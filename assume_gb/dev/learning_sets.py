@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The portfolio agents of a scenario folder from its own ``unit_owners.csv``, without the GB
 data repository (on the HPC): the files of a learning set, ``powerplant_units_learning_<set>.csv``

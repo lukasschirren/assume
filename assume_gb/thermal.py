@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Non-convex thermal supply for the GB scenarios, from the GB defaults of
 `inputs/thermal_parameters.csv` (`gb_default = yes`; sources and reasoning in

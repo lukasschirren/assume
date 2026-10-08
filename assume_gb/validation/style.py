@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The one place for the look of the validation figures: journal sizes (single column 3.5 in,
 double column 7.2 in), 8 pt type, no titles (the captions are written in LaTeX), one colour per

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Criterion 4 of the scorecard: is a model better than simpler ones? One-sided Diebold-Mariano
 tests of equal predictive accuracy, univariate (one test per period of the day) and multivariate

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Criterion 4: the Diebold-Mariano tests reject for a clearly better model, give uniform p-values
 for two equally good ones, keep clock-change days whole, and reduce to epftoolbox's ``DM`` at lag

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The local GB data tool on a small synthetic offer stack (three days of half-hours, one column
 for every kind of offer, invented numbers): the scenario it writes must make every unit offer

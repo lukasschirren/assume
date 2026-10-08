@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The scorecard: the eight criteria in one table, one row per metric and one column per model,
 with each metric's direction and every model's skill against the naive forecast.

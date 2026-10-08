@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The data contract: resolution, the local calendar across clock changes, alignment of models to
 the observed periods, the naive forecast, windows and the common sample."""

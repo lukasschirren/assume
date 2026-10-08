@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """LOCAL folder, not part of the repository: the GB scenario data and the tool that builds it.
 It is listed in ``.git/info/exclude`` and must not be pushed.

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The validation's command, ``python -m assume_gb validate``, end to end on a stand-in for a
 scenario folder and its saved runs (the fixture of the adapters' tests).

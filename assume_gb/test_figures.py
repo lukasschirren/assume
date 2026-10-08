@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The figures of a run: the reading of the framework's output, the figures and the viewer, on the
 first week of a built scenario (two cases: storage, and day-ahead with intraday), and the learning

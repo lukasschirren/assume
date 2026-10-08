@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Ownership: the rules that turn register names into groups, dated sales and joint ventures into owners and an
 operator, merged units into shares, and the battery fleet into one unit per trader; then the 2023 scenario

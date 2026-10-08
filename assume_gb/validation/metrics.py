@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Criteria 1, 2, 3 and 8 of the scorecard: how large the errors are, why they are large, whether
 the distribution is right, and what the spread of the seeds says.

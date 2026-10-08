@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 #
 # One training run per job (PBS Pro). As an array, sub-job N runs the study case on line N of
 # CASES_FILE (default assume_gb/hpc/cases.txt, written by make_cases.sh); a single case is given

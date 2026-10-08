@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The standard figures of a learning run: how the agents learned, read from the database the run
 wrote (``rl_params``, ``rl_grad_params``, ``rl_meta``; learning runs need a database).

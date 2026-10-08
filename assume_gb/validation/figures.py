@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """The figures of the validation, in the style of ``style``: six core figures, one per criterion
 they show, and five supplementary ones. Every plotting function returns (fig, ax), ``ax`` an array

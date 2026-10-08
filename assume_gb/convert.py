@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 """Offer stack -> ASSUME scenario folder.
 
@@ -118,7 +118,7 @@ INTERCONNECTOR_TECHS = ("IC_IMPORT", "IC_EXPORT")
 
 # the licence header the repository's own config files carry (REUSE); the data files get theirs
 # as ``<file>.license`` sidecars, which name the data's licence and are not written here
-SPDX_HEADER = "# SPDX-FileCopyrightText: ASSUME Developers\n#\n# SPDX-License-Identifier: AGPL-3.0-or-later\n\n"
+SPDX_HEADER = "# SPDX-FileCopyrightText: ASSUME Developers\n#\n# SPDX-License-Identifier: MIT\n\n"
 
 SUPPORT_COLUMNS = [
     "support_scheme",
