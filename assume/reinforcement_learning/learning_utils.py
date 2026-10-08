@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: ASSUME Developers
 #
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 
 import logging
 from collections.abc import Callable
@@ -24,39 +24,6 @@ observation_dict = dict[list[datetime], ObsActRew]
 # A schedule takes the remaining progress as input
 # and outputs a scalar (e.g. learning rate, action noise scale ...)
 Schedule = Callable[[float], float]
-
-
-# Ornstein-Uhlenbeck Noise
-# from https://github.com/songrotek/DDPG/blob/master/ou_noise.py
-class OUNoise:
-    """
-    A class that implements Ornstein-Uhlenbeck noise.
-    """
-
-    def __init__(self, action_dimension, mu=0, sigma=0.5, theta=0.15, dt=1e-2):
-        self.action_dimension = action_dimension
-        self.mu = mu
-        self.theta = theta
-        self.sigma = sigma
-        self.dt = dt
-        self.noise_prev = np.zeros(self.action_dimension)
-        self.noise_prev = (
-            self.initial_noise
-            if self.initial_noise is not None
-            else np.zeros(self.action_dimension)
-        )
-
-    def noise(self):
-        noise = (
-            self.noise_prev
-            + self.theta * (self.mu - self.noise_prev) * self.dt
-            + self.sigma
-            * np.sqrt(self.dt)
-            * np.random.normal(size=self.action_dimension)
-        )
-        self.noise_prev = noise
-
-        return noise
 
 
 class NormalActionNoise:
