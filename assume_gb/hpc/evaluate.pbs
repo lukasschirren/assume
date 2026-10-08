@@ -1,0 +1,51 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: ASSUME Developers
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# One evaluation run per job: a study case that applies trained policies (no training), e.g. the
+# year with a run's last policies. As an array, sub-job N runs line N of CASES_FILE (default
+# assume_gb/hpc/cases_last.txt). Submit from the repository root:
+#
+#   qsub -J 1-9 assume_gb/hpc/evaluate.pbs
+#   qsub -v CASE=learning_sep_s0_year_last assume_gb/hpc/evaluate.pbs
+#   qsub -v YEAR=2024,CASE=day_ahead_nc,CSV=1 assume_gb/hpc/evaluate.pbs     # any case, with its CSV output
+#
+#PBS -l walltime=02:00:00
+#PBS -l select=1:ncpus=1:mem=8gb
+#PBS -N gb_evaluate
+#PBS -j oe
+#PBS -o assume_gb/results/logs/
+
+cd $PBS_O_WORKDIR
+
+source ~/miniforge3/etc/profile.d/conda.sh
+
+conda activate assume
+
+set -euo pipefail
+
+YEAR="${YEAR:-2023}"
+RESULTS="${RESULTS:-$PBS_O_WORKDIR/assume_gb/results}"
+CASES_FILE="${CASES_FILE:-$PBS_O_WORKDIR/assume_gb/hpc/cases_last.txt}"
+if [ -z "${CASE:-}" ]; then
+    CASE="$(sed -n "${PBS_ARRAY_INDEX:?give a case (-v CASE=...) or submit an array (-J 1-N)}p" "$CASES_FILE" | tr -d '[:space:]')"
+fi
+NAME="gb_${YEAR}_${CASE}"
+WORK="${TMPDIR:-/tmp}/$NAME"
+mkdir -p "$WORK" "$RESULTS/logs"
+exec > >(tee "$RESULTS/logs/$NAME.log") 2>&1
+trap 'cp -f "$WORK/assume.log" "$RESULTS/logs/$NAME.assume.log" 2>/dev/null || true' EXIT
+
+export NON_INTERACTIVE=1
+export PYTHONHASHSEED=0
+export PYTHONPATH="$PBS_O_WORKDIR${PYTHONPATH:+:$PYTHONPATH}"
+cd "$WORK"
+
+echo "$(date '+%F %T') $NAME on $(hostname), working in $WORK"
+if [ "${CSV:-0}" = 1 ]; then   # with the framework's CSV output (about 1 GB a year), for figures, viewer and curves
+    python -m assume_gb run --year "$YEAR" --case "$CASE" --save "$RESULTS" --csv "$RESULTS/csv"
+else
+    python -m assume_gb run --year "$YEAR" --case "$CASE" --save "$RESULTS"
+fi
+echo "$(date '+%F %T') done"

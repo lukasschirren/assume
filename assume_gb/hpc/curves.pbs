@@ -1,0 +1,23 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: ASSUME Developers
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# The exchanges' bid curves of some years, resampled (python -m assume_gb curves): one pass over the
+# Nord Pool archive and the EPEX zips. Submit from the repository root:
+#
+#   qsub -v YEARS="2023 2025" assume_gb/hpc/curves.pbs
+#
+#PBS -l walltime=04:00:00
+#PBS -l select=1:ncpus=1:mem=32gb
+#PBS -N gb_curves
+#PBS -j oe
+#PBS -o assume_gb/results/logs/
+
+cd $PBS_O_WORKDIR
+
+source ~/miniforge3/etc/profile.d/conda.sh
+
+conda activate assume
+
+python -m assume_gb curves --years ${YEARS:-2023 2025}

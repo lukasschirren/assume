@@ -1,0 +1,23 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: ASSUME Developers
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# The framework's test suite (without the slow CLI tests) and ruff, on a compute node. Submit from
+# the repository root:  qsub assume_gb/hpc/tests.pbs ; the output is in assume_gb/results/logs/.
+#
+#PBS -l walltime=01:00:00
+#PBS -l select=1:ncpus=1:mem=8gb
+#PBS -N assume_tests
+#PBS -j oe
+#PBS -o assume_gb/results/logs/
+
+cd $PBS_O_WORKDIR
+
+source ~/miniforge3/etc/profile.d/conda.sh
+
+conda activate assume
+
+python -m ruff check assume tests
+python -m ruff format --check assume tests
+python -m pytest -m "not slow" -q -p no:cacheprovider

@@ -1,0 +1,87 @@
+#!/bin/bash
+# SPDX-FileCopyrightText: ASSUME Developers
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# One training run per job (PBS Pro). As an array, sub-job N runs the study case on line N of
+# CASES_FILE (default assume_gb/hpc/cases.txt, written by make_cases.sh); a single case is given
+# with -v CASE=... The job trains the case, draws its learning figures and, for each companion the
+# case has, applies the trained policies to the whole year. Submit from the repository root (see
+# assume_gb/README.md, "HPC"):
+#
+#   qsub -v CASE=learning_week assume_gb/hpc/train.pbs                     # one case: the smoke test
+#   qsub -J 1-9 -v CASES_FILE=$PWD/assume_gb/hpc/cases.txt assume_gb/hpc/train.pbs
+#   qsub -J 1-5 -v YEAR=2024,CASES_FILE=... assume_gb/hpc/train.pbs        # another year's folder
+#
+# A run is single-threaded Python plus a few torch threads, and uses under 1 GB; a GPU does not
+# help. The resources below are per run: change them here or on the command line.
+#
+#PBS -l walltime=24:00:00
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -N gb_learning
+#PBS -j oe
+#PBS -o assume_gb/results/logs/
+
+cd $PBS_O_WORKDIR
+REPO="$PBS_O_WORKDIR"
+
+# The conda env with the fork installed (pip install -e ".[all]" openpyxl), in ~/miniforge3.
+source ~/miniforge3/etc/profile.d/conda.sh
+
+conda activate assume
+PYTHON=python
+
+set -euo pipefail
+
+YEAR="${YEAR:-2023}"
+RESULTS="${RESULTS:-$REPO/assume_gb/results}"
+CASES_FILE="${CASES_FILE:-$REPO/assume_gb/hpc/cases.txt}"
+if [ -z "${CASE:-}" ]; then
+    CASE="$(sed -n "${PBS_ARRAY_INDEX:?give a case (-v CASE=...) or submit an array (-J 1-N)}p" "$CASES_FILE" | tr -d '[:space:]')"
+fi
+if [ -z "$CASE" ]; then
+    echo "no study case on line ${PBS_ARRAY_INDEX:-?} of $CASES_FILE" >&2
+    exit 1
+fi
+NAME="gb_${YEAR}_${CASE}"
+
+# Work on the node's own disk: the database, the framework's log (assume.log, written to the
+# working directory) and the CSV output. They are copied back when the job ends, however it ends,
+# into the results folder's parts (the names of paths.results_dir, results/README.md): db/, logs/,
+# csv/; the prices go to prices/ (run --save) and the learning figures to learning/.
+WORK="${TMPDIR:-/tmp}/$NAME"
+DB="$WORK/$NAME.db"
+mkdir -p "$WORK" "$RESULTS/logs" "$RESULTS/csv" "$RESULTS/db"
+exec > >(tee "$RESULTS/logs/$NAME.log") 2>&1
+
+save() {
+    [ -s "$DB" ] && cp -f "$DB" "$RESULTS/db/" 2>/dev/null || true   # not an empty one over a kept database
+    cp -f "$WORK/assume.log" "$RESULTS/logs/$NAME.assume.log" 2>/dev/null || true
+    cp -rf "$WORK/csv/." "$RESULTS/csv/" 2>/dev/null || true
+}
+trap save EXIT
+
+export NON_INTERACTIVE=1                   # no prompt: an existing policy folder of the case is replaced
+export PYTHONHASHSEED=0                    # the agents then act in the same order from run to run
+export OMP_NUM_THREADS="${NCPUS:-4}"       # PBS sets NCPUS to the cores of the job
+export PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}"
+cd "$WORK"
+
+echo "$(date '+%F %T') $NAME on $(hostname), $OMP_NUM_THREADS threads, working in $WORK"
+"$PYTHON" -m assume_gb run --year "$YEAR" --case "$CASE" --db "sqlite:///$DB" --save "$RESULTS" --csv "$WORK/csv"
+"$PYTHON" -m assume_gb learning --db "sqlite:///$DB" --simulation "$NAME" --out "$RESULTS/learning/$NAME"
+
+# The trained policies applied to the whole year, for each companion the case has: "_year" with
+# the policies of the best evaluation episode, "_year_last" with those at the end of training.
+# The year's prices and their comparison are always kept; its full CSV output (about 600 MB) with
+# YEAR_CSV=1.
+for companion in "${CASE}_year" "${CASE}_year_last"; do
+    grep -q "^${companion}:" "$REPO/assume_gb/inputs/gb_${YEAR}/config.yaml" || continue
+    echo "$(date '+%F %T') gb_${YEAR}_${companion}"
+    if [ "${YEAR_CSV:-0}" = 1 ]; then
+        "$PYTHON" -m assume_gb run --year "$YEAR" --case "$companion" --save "$RESULTS" --csv "$WORK/csv"
+    else
+        "$PYTHON" -m assume_gb run --year "$YEAR" --case "$companion" --save "$RESULTS"
+    fi
+done
+echo "$(date '+%F %T') done"
