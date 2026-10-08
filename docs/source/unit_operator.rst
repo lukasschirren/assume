@@ -70,3 +70,10 @@ The agent outputs a markup multiplier per cost bin per time step. Units are sort
 flexible capacity is bid at ``marginal_cost × markup[bin]``. Inflexible (must-run) generation is always bid at
 marginal cost. The reward signal is the difference between realised profit and a competitive benchmark (all units
 bidding at marginal cost given the price forecast).
+
+By default the cost bins are quantiles of the units' marginal costs, so each bin holds about the same number of
+units. In a portfolio of many small cheap units and a few large dear ones, such as a fleet of wind farms beside some
+gas plants, the dear units then share one bin and one markup. With ``cost_bins: capacity`` in
+``bidding_strategy_params`` the bins hold equal shares of the portfolio's installed capacity instead, ordered by
+marginal cost (a unit goes to the bin that holds the middle of its capacity; units of equal cost share a bin).
+Bins may then stay empty, so an operator may also run fewer units than ``nbins``.

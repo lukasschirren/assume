@@ -271,3 +271,151 @@ def test_portfolio_observation_with_plants_dearer_than_any_price(
             bid["price"]
             >= unit.calculate_marginal_cost(product_start, unit.max_power) - 1e-9
         )
+
+
+def make_units_operator(plants):
+    """A MockUnitsOperator with one lignite plant per (fuel price, max power) in ``plants``."""
+    index = pd.date_range(start, periods=48, freq="h")
+    prices = np.linspace(50, 150, 48)
+    res_load = np.linspace(500, 1000, 48)
+    units = {}
+    for i, (fuel_price, max_power) in enumerate(plants):
+        units[f"pp_{i}"] = PowerPlant(
+            id=f"pp_{i}",
+            unit_operator="test_portfolio_operator",
+            technology="lignite",
+            index=index,
+            max_power=max_power,
+            min_power=0,
+            efficiency=0.5,
+            additional_cost=5,
+            bidding_strategies={MARKET_ID: EnergyNaiveStrategy()},
+            fuel_type="lignite",
+            emission_factor=0.5,
+            forecaster=PowerplantForecaster(
+                index,
+                fuel_prices={"lignite": fuel_price, "co2": 10},
+                residual_load={MARKET_ID: res_load},
+                market_prices={MARKET_ID: prices},
+            ),
+        )
+    return MockUnitsOperator(
+        id="test_portfolio_operator",
+        units=units,
+        forecaster=UnitsOperatorForecaster(
+            index,
+            residual_load={MARKET_ID: res_load},
+            market_prices={MARKET_ID: prices},
+        ),
+    )
+
+
+@pytest.mark.require_learning
+def test_capacity_cost_bins():
+    """Bins hold equal shares of capacity: many small cheap units do not take a bin of their
+    own, units of equal cost share a bin, and a single cost fills the last bin."""
+    from assume.strategies.portfolio_learning_strategies import capacity_cost_bins
+
+    # eight wind farms at 3 and four gas plants (a GB owner in September 2023)
+    costs = [3.0] * 8 + [73.0, 79.0, 83.0, 96.0]
+    capacity = [300.0] * 8 + [1325.0, 1958.0, 1477.0, 613.0]
+    index, bounds = capacity_cost_bins(costs, capacity, 2)
+    assert index.tolist() == [0] * 9 + [1] * 3
+    assert bounds.tolist() == [73.0, 96.0]
+
+    index, bounds = capacity_cost_bins([5.0, 5.0, 5.0], [1.0, 2.0, 3.0], 2)
+    assert index.tolist() == [1, 1, 1]
+    assert bounds.tolist() == [5.0, 5.0]
+
+    index, _ = capacity_cost_bins([10.0, 20.0, 30.0, 40.0], [100.0] * 4, 4)
+    assert index.tolist() == [0, 1, 2, 3]
+
+
+@pytest.mark.require_learning
+def test_portfolio_cost_bins_by_capacity(portfolio_market_config):
+    """With cost_bins="capacity" the two large dear plants of a portfolio with many small cheap
+    ones are bid with different mark-ups; with the stock count quantiles they share one."""
+    import torch as th
+
+    # six small plants at one cost, two large dearer ones
+    plants = [(10, 100)] * 6 + [(30, 1000), (40, 1000)]
+    product_start = pd.date_range(start, periods=1, freq="h")[0]
+    product_tuples = [(product_start, product_start + pd.Timedelta(hours=1), None)]
+
+    bid_prices = {}
+    for cost_bins in ("count", "capacity"):
+        operator = make_units_operator(plants)
+        lr = Learning(
+            LearningConfig(algorithm="matd3", learning_mode=True, training_episodes=3),
+            start,
+            end,
+        )
+        strategy = PortfolioLearningStrategy(
+            learning_role=lr,
+            unit_id="test_portfolio_operator",
+            nbins=2,
+            max_markup=3,
+            cost_bins=cost_bins,
+        )
+        lr.initialize_policy()
+        # the cheaper bin at cost, the dearer one at three times the cost
+        strategy.get_actions = lambda obs: (th.tensor([-1.0, 1.0]), th.zeros(2))
+        bids = strategy.calculate_bids(
+            operator, portfolio_market_config, product_tuples
+        )
+        bid_prices[cost_bins] = {
+            bid["unit_id"]: bid["price"]
+            / operator.units[bid["unit_id"]].calculate_marginal_cost(
+                product_start, operator.units[bid["unit_id"]].max_power
+            )
+            for bid in bids
+        }
+
+    assert bid_prices["count"]["pp_6"] == pytest.approx(3.0)
+    assert bid_prices["count"]["pp_7"] == pytest.approx(3.0)
+    assert bid_prices["capacity"]["pp_0"] == pytest.approx(1.0)
+    assert bid_prices["capacity"]["pp_6"] == pytest.approx(1.0)
+    assert bid_prices["capacity"]["pp_7"] == pytest.approx(3.0)
+
+
+@pytest.mark.require_learning
+def test_portfolio_cost_bins_unknown():
+    with pytest.raises(ValueError, match="cost_bins"):
+        PortfolioLearningStrategy(
+            learning_role=None, unit_id="test_portfolio_operator", cost_bins="volume"
+        )
+
+
+@pytest.mark.require_learning
+def test_portfolio_capacity_bins_fewer_units_than_bins(portfolio_market_config):
+    """With cost_bins="capacity" an operator of a single plant can bid with four bins: the plant
+    takes the bin that holds its capacity, the others stay empty."""
+    import torch as th
+
+    operator = make_units_operator([(30, 1000)])
+    lr = Learning(
+        LearningConfig(algorithm="matd3", learning_mode=True, training_episodes=3),
+        start,
+        end,
+    )
+    strategy = PortfolioLearningStrategy(
+        learning_role=lr,
+        unit_id="test_portfolio_operator",
+        nbins=4,
+        max_markup=3,
+        cost_bins="capacity",
+    )
+    lr.initialize_policy()
+    strategy.get_actions = lambda obs: (th.tensor([-1.0, -1.0, 1.0, -1.0]), th.zeros(4))
+    product_start = pd.date_range(start, periods=1, freq="h")[0]
+    bids = strategy.calculate_bids(
+        operator,
+        portfolio_market_config,
+        [(product_start, product_start + pd.Timedelta(hours=1), None)],
+    )
+    unit = operator.units["pp_0"]
+    assert strategy.unit_bins == {"pp_0": 2}
+    assert len(bids) == 1
+    assert bids[0]["price"] == pytest.approx(
+        3 * unit.calculate_marginal_cost(product_start, unit.max_power)
+    )

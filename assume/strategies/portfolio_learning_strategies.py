@@ -92,6 +92,14 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
         # Hyperparameters for action and reward
         self.min_markup = kwargs.pop("min_markup", 1)  # min markup on marginal cost
         self.max_markup = kwargs.pop("max_markup", 3)  # max markup on marginal cost
+        # how the cost bins split the portfolio: into equal numbers of units ("count") or into
+        # equal shares of installed capacity ("capacity")
+        self.cost_bins = kwargs.pop("cost_bins", "count")
+        if self.cost_bins not in ("count", "capacity"):
+            raise ValueError(
+                f"cost_bins must be 'count' or 'capacity', not {self.cost_bins!r}"
+            )
+        self.unit_bins = {}  # the cost bin of each unit, set with the observation
         self.is_prepared = False
 
         super().__init__(
@@ -141,9 +149,10 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
         assert market_config.market_products[0].count <= self.steps, (
             f"{market_id} market contains less than {self.steps} products."
         )
-        assert len(units_operator.units) >= self.nbins, (
-            f"{units_operator.id} operates less than {self.nbins} units."
-        )
+        # bins of equal capacity can stay empty, so a portfolio may have fewer units than bins
+        assert (
+            self.cost_bins == "capacity" or len(units_operator.units) >= self.nbins
+        ), f"{units_operator.id} operates less than {self.nbins} units."
 
         ### STEP 1: CREATE OBSERVATION ###
 
@@ -190,8 +199,11 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
                 marginal_cost = unit.calculate_marginal_cost(start, max_mw)
 
                 # Find the corresponding cost bin and register it
-                j = np.searchsorted(costs, marginal_cost, side="right")
-                j = min(j, self.nbins - 1)
+                if self.cost_bins == "capacity":
+                    j = self.unit_bins[unit_id]
+                else:
+                    j = np.searchsorted(costs, marginal_cost, side="right")
+                    j = min(j, self.nbins - 1)
 
                 # 3b. Bid INFLEXIBLE generation of online units for their mc
 
@@ -444,6 +456,10 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
         -----
             Outputs are in range [-1,1], where
             costs are min-max scaled by [0 self.max_bid_price].
+
+            With ``cost_bins="capacity"`` the bins split the installed capacity of the
+            portfolio, ordered by marginal cost, into equal shares instead of the number of
+            units (``capacity_cost_bins``), and the bin of each unit is kept for the bids.
         """
 
         # Sort unit tuples by marginal cost
@@ -455,6 +471,17 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
             flex_gen = max_mw - inflex_gen
             marginal_cost = unit.calculate_marginal_cost(start, max_mw)
             unit_tuples[u_id] = inflex_gen, flex_gen, marginal_cost
+
+        if self.cost_bins == "capacity":
+            unit_ids = list(unit_tuples)
+            flex_quant = np.array([unit_tuples[u][1] for u in unit_ids])
+            flex_cost = np.array([unit_tuples[u][2] for u in unit_ids])
+            capacity = [units_operator.units[u].max_power for u in unit_ids]
+            index, cost_bins = capacity_cost_bins(flex_cost, capacity, self.nbins)
+            self.unit_bins = dict(zip(unit_ids, index.tolist()))
+            scaled_costs = min_max_scale(cost_bins, in_min=0, in_max=self.max_cost)
+            quant = np.bincount(index, weights=flex_quant, minlength=self.nbins)
+            return np.concatenate([quant / self.installed_capacity, scaled_costs])
 
         sorted_tuples = sorted(list(unit_tuples.values()), key=lambda x: x[-1])
         _, flex_quant, flex_cost = zip(*sorted_tuples)
@@ -560,3 +587,38 @@ class PortfolioLearningStrategy(TorchLearningStrategy, UnitOperatorStrategy):
             self.learning_role.add_reward_to_cache(
                 units_operator.id, start, reward, comp_profits, tot_profits
             )
+
+
+def capacity_cost_bins(
+    costs: np.ndarray, capacity: np.ndarray, nbins: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Splits units into ``nbins`` cost bins that hold equal shares of their capacity.
+
+    The units are ordered by cost, and a unit goes to the bin that holds the middle of its
+    capacity in that order; units of equal cost share a bin. A bin stays empty when a single
+    cost holds more than its share.
+
+    Args
+    ----
+        costs (np.ndarray): The marginal cost of each unit.
+        capacity (np.ndarray): The capacity of each unit, by which it is weighed.
+        nbins (int): The number of bins.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        The bin of each unit, and for each bin the highest cost in it or a bin below it (the
+        lowest cost while there is none).
+    """
+    levels, level_of_unit = np.unique(np.asarray(costs, float), return_inverse=True)
+    level_capacity = np.bincount(level_of_unit, weights=np.asarray(capacity, float))
+    middle = (np.cumsum(level_capacity) - level_capacity / 2) / level_capacity.sum()
+    level_bin = np.minimum((middle * nbins).astype(int), nbins - 1)
+    bounds = np.array(
+        [
+            levels[level_bin <= k].max() if (level_bin <= k).any() else levels[0]
+            for k in range(nbins)
+        ]
+    )
+    return level_bin[level_of_unit], bounds
