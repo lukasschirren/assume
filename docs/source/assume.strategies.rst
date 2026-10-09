@@ -64,6 +64,14 @@ assume.strategies.forecast\_strategies module
    :undoc-members:
    :show-inheritance:
 
+assume.strategies.lookahead\_strategies module
+----------------------------------------------
+
+.. automodule:: assume.strategies.lookahead_strategies
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 assume.strategies.learning\_strategies module
 ---------------------------------------------
 

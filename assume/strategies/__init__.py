@@ -34,6 +34,7 @@ from assume.strategies.forecast_strategies import (
     EnergyNaiveForecastStrategy,
     EnergyNaiveRebalanceStrategy,
 )
+from assume.strategies.lookahead_strategies import EnergyHeuristicLookaheadStrategy
 from assume.strategies.storage_strategies import (
     StorageEnergyOptimizationScheduleStrategy,
 )
@@ -79,6 +80,7 @@ bidding_strategies: dict[str, type[BaseStrategy | UnitOperatorStrategy]] = {
     "demand_energy_naive_otc": EnergyNaiveOtcStrategy,
     "powerplant_energy_naive_otc": EnergyNaiveOtcStrategy,
     "powerplant_energy_heuristic_flexable": EnergyHeuristicFlexableStrategy,
+    "powerplant_energy_heuristic_lookahead": EnergyHeuristicLookaheadStrategy,
     "powerplant_energy_heuristic_block": EnergyHeuristicFlexableBlockStrategy,
     "powerplant_energy_heuristic_linked": EnergyHeuristicFlexableLinkedStrategy,
     "powerplant_capacity_heuristic_balancing_neg": CapacityHeuristicBalancingNegStrategy,

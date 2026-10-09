@@ -135,6 +135,16 @@ powerplant_energy_heuristic_flexable          EOM                 A more refined
                                                                   costs, while the flexible bid covers additional power up to the maximum capacity at marginal cost. It
                                                                   incorporates price forecasting and accounts for ramping constraints, operational history, and power loss
                                                                   due to heat production.
+powerplant_energy_heuristic_lookahead         EOM                 A power plant with start-up costs and minimum up and down times plans its commitment on its price forecast over
+                                                                  the auction's products and ``lookahead`` beyond them (default 24h): it starts where the forecast margin of the
+                                                                  run covers the start-up cost (hot, warm or cold by the time it has been off), stays on through a stretch below
+                                                                  marginal cost when the loss is smaller than starting again, and stops otherwise. A unit not yet running offers
+                                                                  its output in every period of a planned run at marginal cost plus the start-up cost spread over the run's energy
+                                                                  (MWh, so it holds for any product duration), elsewhere plus the start-up cost over a run of the minimum up time.
+                                                                  A running unit offers at marginal cost, its minimum output at the market's lowest price within the minimum up
+                                                                  time and below marginal cost by the restart cost it saves in a stretch it plans to run through. Unlike
+                                                                  :code:`powerplant_energy_heuristic_flexable` it does not take a unit to be running in the later products of an
+                                                                  auction because it bids in an earlier one.
 powerplant_energy_heuristic_block             EOM                 A power plant strategy valid for complex market clearing which bids dict blocks to the market. The bid is for a
                                                                   block of multiple hours instead of being for a single hour. A minimum acceptance ratio (MAR) defines how to
                                                                   handle rejected bids within individual hours of the block. For the inflexible bid, the MAR is set to 1,
